@@ -1,8 +1,24 @@
-# Chance (in percent) for the ritual to succeed
-success-chance: 100.0
+# =========================================================
+# Pumpkin Ritual Dupe Configuration
+# =========================================================
 
-# The block that must be right-clicked to start the ritual
-center-block: JACK_O_LANTERN
+ritual:
+  block: JACK_O_LANTERN            # Center block for ritual
+  surrounding-block: CARVED_PUMPKIN
+  chance-success: 50.0             # % chance of successful duplication
+  require-nighttime: true
+  failure-damage: 2.0              # Damage (in half-hearts) when failed
 
-# The block that must surround the center (8 total)
-surround-block: CARVED_PUMPKIN
+cooldowns:
+  player-cooldown-seconds: 10     # Per-player cooldown (5 min)
+  server-cooldown-seconds: 30     # Global cooldown (2 min)
+
+messages:
+  no-item: "&cYou must offer an item to the ritual!"
+  night-only: "&7The ritual only works under the moonlight..."
+  incomplete-circle: "&4The ritual circle is incomplete!"
+  invalid-block: "&cThis is not a valid ritual site!"
+  server-cooldown: "&8The ritual’s energy hasn’t recovered yet... &7({time}s)"
+  player-cooldown: "&cThe spirits demand patience... &7({time}s)"
+  success: "&6⚡ The ritual succeeds! Your offering multiplies!"
+  failure: "&c💀 The ritual failed... you feel the wrath of the spirits!"
