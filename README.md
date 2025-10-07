@@ -40,9 +40,9 @@ If the ritual is built correctly and the pumpkins approve (based on chance), lig
 
 Top-down view:
 
-🎃 🎃 🎃
-🎃 💡 🎃
-🎃 🎃 🎃
+⬛ ⬛ ⬛
+⬛ 💡 ⬛
+⬛ ⬛ ⬛
 
 - 💡 = `JACK_O_LANTERN` *(configurable `center-block`)*
 - 🎃 = `CARVED_PUMPKIN` *(configurable `surround-block`)*
