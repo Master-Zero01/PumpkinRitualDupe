@@ -40,3 +40,28 @@ If the ritual is built correctly and the pumpkins approve (based on chance), lig
 
 Top-down view:
 
+🎃 🎃 🎃
+🎃 💡 🎃
+🎃 🎃 🎃
+
+
+- 💡 = `JACK_O_LANTERN` *(configurable `center-block`)*
+- 🎃 = `CARVED_PUMPKIN` *(configurable `surround-block`)*
+
+Right-click the center block while holding the item you wish to duplicate.
+
+---
+
+## ⚙️ Configuration
+
+`config.yml`
+
+```yaml
+# Chance (in percent) for the ritual to succeed
+success-chance: 100.0
+
+# The block that must be right-clicked to start the ritual
+center-block: JACK_O_LANTERN
+
+# The block that must surround the center (8 total)
+surround-block: CARVED_PUMPKIN
