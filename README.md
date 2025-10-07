@@ -44,7 +44,6 @@ Top-down view:
 🎃 💡 🎃
 🎃 🎃 🎃
 
-
 - 💡 = `JACK_O_LANTERN` *(configurable `center-block`)*
 - 🎃 = `CARVED_PUMPKIN` *(configurable `surround-block`)*
 
