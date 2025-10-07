@@ -35,17 +35,3 @@ Then, they hold any item in their main hand and **right-click the center block**
 If the ritual is built correctly and the pumpkins approve (based on chance), lightning will strike and the held item will duplicate!
 
 ---
-
-## ⚙️ Configuration
-
-`config.yml`
-
-```yaml
-# Chance (in percent) for the ritual to succeed
-success-chance: 100.0
-
-# The block that must be right-clicked to start the ritual
-center-block: JACK_O_LANTERN
-
-# The block that must surround the center (8 total)
-surround-block: CARVED_PUMPKIN
