@@ -36,21 +36,6 @@ If the ritual is built correctly and the pumpkins approve (based on chance), lig
 
 ---
 
-### 🎃 Default Ritual Layout
-
-Top-down view:
-
-⬛ ⬛ ⬛
-⬛ 💡 ⬛
-⬛ ⬛ ⬛
-
-- 💡 = `JACK_O_LANTERN` *(configurable `center-block`)*
-- 🎃 = `CARVED_PUMPKIN` *(configurable `surround-block`)*
-
-Right-click the center block while holding the item you wish to duplicate.
-
----
-
 ## ⚙️ Configuration
 
 `config.yml`
