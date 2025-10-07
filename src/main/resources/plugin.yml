@@ -1,0 +1,6 @@
+name: PumpkinRitualDupe
+version: '3.0'
+main: org.First.pumpkinRitualDupe.PumpkinRitualDupe
+api-version: '1.18'
+authors: [ _MasterZero ]
+description: A spooky Halloween pumpkin ritual dupe with random chance and configurable settings.
