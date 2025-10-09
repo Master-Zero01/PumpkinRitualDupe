@@ -3,15 +3,20 @@
 # =========================================================
 
 ritual:
-  block: JACK_O_LANTERN            # Center block for ritual
-  surrounding-block: CARVED_PUMPKIN
-  chance-success: 50.0             # % chance of successful duplication
+  center-blocks:
+    - JACK_O_LANTERN
+    - BEACON
+    - ENCHANTMENT_TABLE
+  surrounding-blocks:
+    - CARVED_PUMPKIN
+    - JACK_O_LANTERN
+  chance-success: 50.0
   require-nighttime: true
-  failure-damage: 2.0              # Damage (in half-hearts) when failed
+  failure-damage: 2.0
 
 cooldowns:
-  player-cooldown-seconds: 10     # Per-player cooldown (5 min)
-  server-cooldown-seconds: 30     # Global cooldown (2 min)
+  player-cooldown-seconds: 10
+  server-cooldown-seconds: 30
 
 messages:
   no-item: "&cYou must offer an item to the ritual!"
@@ -22,3 +27,7 @@ messages:
   player-cooldown: "&cThe spirits demand patience... &7({time}s)"
   success: "&6⚡ The ritual succeeds! Your offering multiplies!"
   failure: "&c💀 The ritual failed... you feel the wrath of the spirits!"
+  reloaded: "&aPumpkinRitualDupe config reloaded."
+  no-permission: "&cYou don't have permission to do that."
+
+debug: false
