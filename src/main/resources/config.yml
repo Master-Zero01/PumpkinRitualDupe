@@ -3,23 +3,54 @@
 # =========================================================
 
 ritual:
+  # List of blocks that can act as the ritual center
   center-blocks:
-    - JACK_O_LANTERN
+    - SPAWNER
     - BEACON
-    - ENCHANTMENT_TABLE
+
+  # List of blocks surrounding the ritual center
   surrounding-blocks:
     - CARVED_PUMPKIN
-    - JACK_O_LANTERN
+    - PUMPKIN
+
+  # Items allowed to be duplicated by the ritual
+  allowed-items:
+    - SHULKER_BOX
+    - WHITE_SHULKER_BOX
+    - ORANGE_SHULKER_BOX
+    - MAGENTA_SHULKER_BOX
+    - LIGHT_BLUE_SHULKER_BOX
+    - YELLOW_SHULKER_BOX
+    - LIME_SHULKER_BOX
+    - PINK_SHULKER_BOX
+    - GRAY_SHULKER_BOX
+    - LIGHT_GRAY_SHULKER_BOX
+    - CYAN_SHULKER_BOX
+    - PURPLE_SHULKER_BOX
+    - BLUE_SHULKER_BOX
+    - BROWN_SHULKER_BOX
+    - GREEN_SHULKER_BOX
+    - RED_SHULKER_BOX
+    - BLACK_SHULKER_BOX
+
+  # Chance (in percent) that the ritual succeeds
   chance-success: 50.0
+
+  # Require nighttime to perform the ritual
   require-nighttime: true
+
+  # Damage (in half-hearts) the player receives if the ritual fails
   failure-damage: 2.0
 
 cooldowns:
-  player-cooldown-seconds: 10
-  server-cooldown-seconds: 30
+  # Player-specific cooldown in seconds
+  player-cooldown-seconds: 300
+
+debug: false
 
 messages:
   no-item: "&cYou must offer an item to the ritual!"
+  item-not-allowed: "&cThis item cannot be duplicated by the ritual!"
   night-only: "&7The ritual only works under the moonlight..."
   incomplete-circle: "&4The ritual circle is incomplete!"
   invalid-block: "&cThis is not a valid ritual site!"
@@ -29,5 +60,3 @@ messages:
   failure: "&c💀 The ritual failed... you feel the wrath of the spirits!"
   reloaded: "&aPumpkinRitualDupe config reloaded."
   no-permission: "&cYou don't have permission to do that."
-
-debug: false
