@@ -1,5 +1,5 @@
 name: PumpkinRitualDupe
-version: '4.0'
+version: '5.0'
 main: org.First.pumpkinRitualDupe.PumpkinRitualDupe
 api-version: '1.18'
 authors: [_MasterZero]
