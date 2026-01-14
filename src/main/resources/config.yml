@@ -49,6 +49,7 @@ cooldowns:
 debug: false
 
 messages:
+  # General feedback
   no-item: "&cYou must offer an item to the ritual!"
   item-not-allowed: "&cThis item cannot be duplicated by the ritual!"
   night-only: "&7The ritual only works under the moonlight..."
@@ -58,5 +59,16 @@ messages:
   player-cooldown: "&cThe spirits demand patience... &7({time}s)"
   success: "&6⚡ The ritual succeeds! Your offering multiplies!"
   failure: "&c💀 The ritual failed... you feel the wrath of the spirits!"
-  reloaded: "&aPumpkinRitualDupe config reloaded."
+
+  # Plugin messages
+  config-reloaded: "&aPumpkinRitualDupe config reloaded."
   no-permission: "&cYou don't have permission to do that."
+  plugin-enabled: "&a🎃 PumpkinRitualDupe enabled! Centers: {center}, Surround: {surround}, Allowed items: {allowed}"
+  plugin-disabled: "&c🪦 PumpkinRitualDupe disabled."
+
+  # Command messages
+  command-header: "&ePumpkinRitualDupe Commands:"
+  command-reload: " &7/pumpkindupe reload &8- Reload configuration (permission: pumpkindupe.reload)"
+
+  # Optional debug messages
+  debug-roll: "&7[Debug] {player} attempted ritual at {location} (roll: {roll}%)"
