@@ -1,6 +1,10 @@
 package org.First.pumpkinRitualDupe;
 
-import org.bukkit.*;
+import org.First.pumpkinRitualDupe.commands.ReloadCommand;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,13 +13,24 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
- * 🎃 PumpkinRitualDupe — per-player cooldown only,
- * prevents off-hand + sneak activation, supports config reload via ReloadCommand,
- * optimized circle check, and all messages configurable.
+ * PumpkinRitualDupe provides a configurable, chance-based pumpkin ritual.
+ *
+ * <p>The ritual uses a per-player cooldown, ignores off-hand and sneaking
+ * interactions, validates the eight surrounding blocks, and supports
+ * configuration reloads through {@code /pumpkindupe reload}.</p>
  */
 public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
 
@@ -46,8 +61,8 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
     // -------------------
     private static final int[][] CIRCLE_OFFSETS = {
             {-1, 0, -1}, {0, 0, -1}, {1, 0, -1},
-            {-1, 0, 0},             {1, 0, 0},
-            {-1, 0, 1}, {0, 0, 1},  {1, 0, 1}
+            {-1, 0, 0},                  {1, 0, 0},
+            {-1, 0, 1},  {0, 0, 1},  {1, 0, 1}
     };
 
     @Override
@@ -56,6 +71,19 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
         loadConfigSettings();
 
         getServer().getPluginManager().registerEvents(this, this);
+
+        // Keep cooldowns across reconnects, but periodically discard expired UUIDs.
+        getServer().getScheduler().runTaskTimer(
+                this, this::cleanupExpiredCooldowns, 20L * 60L, 20L * 60L * 5L);
+
+        if (getCommand("pumpkindupe") != null) {
+            ReloadCommand reload = new ReloadCommand(this);
+            getCommand("pumpkindupe").setExecutor(reload);
+            getCommand("pumpkindupe").setTabCompleter(reload);
+        } else {
+            // plugin.yml should always declare this command; log a clear error if it does not.
+            getLogger().severe("Command 'pumpkindupe' is missing from plugin.yml; reload command is unavailable.");
+        }
 
         getLogger().info(color(messages.getOrDefault("plugin-enabled",
                 "&a🎃 PumpkinRitualDupe enabled! Centers: {center}, Surround: {surround}, Allowed items: {allowed}"))
@@ -66,24 +94,59 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        getLogger().info(color(messages.getOrDefault("plugin-disabled", "&c🪦 PumpkinRitualDupe disabled.")));
+        String disabledMessage = messages == null
+                ? "&c🪦 PumpkinRitualDupe disabled."
+                : messages.getOrDefault("plugin-disabled", "&c🪦 PumpkinRitualDupe disabled.");
+        getLogger().info(color(disabledMessage));
     }
 
     // -------------------
     // Load configuration
     // -------------------
     public void loadConfigSettings() {
-        centerBlocks = parseMaterials(getConfig().getStringList("ritual.center-blocks"), Material.JACK_O_LANTERN);
-        surroundBlocks = parseMaterials(getConfig().getStringList("ritual.surrounding-blocks"), Material.CARVED_PUMPKIN);
-        allowedItems = parseMaterials(getConfig().getStringList("ritual.allowed-items"), Arrays.asList(Material.values()));
+        centerBlocks = parseMaterials(
+                getConfig().getStringList("ritual.center-blocks"), Material.JACK_O_LANTERN);
+        surroundBlocks = parseMaterials(
+                getConfig().getStringList("ritual.surrounding-blocks"), Material.CARVED_PUMPKIN);
+        // Preserve the original fail-open fallback if this setting is empty or invalid.
+        allowedItems = parseMaterials(
+                getConfig().getStringList("ritual.allowed-items"),
+                Arrays.stream(Material.values()).filter(m -> !m.isLegacy() && m.isItem() && !m.isAir()).collect(Collectors.toList()));
 
-        successChance = getConfig().getDouble("ritual.chance-success", 50.0);
+        double configuredChance = getConfig().getDouble("ritual.chance-success", 50.0);
+        if (!Double.isFinite(configuredChance)) {
+            getLogger().warning("ritual.chance-success must be a finite number; using 50.0.");
+            successChance = 50.0;
+        } else {
+            successChance = clamp(configuredChance, 0.0, 100.0);
+            if (successChance != configuredChance) {
+                getLogger().warning("ritual.chance-success was outside 0-100 and has been clamped to "
+                        + successChance + ".");
+            }
+        }
+
         requireNight = getConfig().getBoolean("ritual.require-nighttime", true);
-        failureDamage = getConfig().getDouble("ritual.failure-damage", 2.0);
-        playerCooldownSeconds = getConfig().getLong("cooldowns.player-cooldown-seconds", 300);
+
+        double configuredDamage = getConfig().getDouble("ritual.failure-damage", 2.0);
+        if (!Double.isFinite(configuredDamage)) {
+            getLogger().warning("ritual.failure-damage must be finite; using 2.0.");
+            failureDamage = 2.0;
+        } else {
+            failureDamage = Math.max(0.0, configuredDamage);
+            if (failureDamage != configuredDamage) {
+                getLogger().warning("ritual.failure-damage cannot be negative; using 0.0.");
+            }
+        }
+
+        long configuredCooldown = getConfig().getLong("cooldowns.player-cooldown-seconds", 300L);
+        playerCooldownSeconds = Math.max(0L, configuredCooldown);
+        if (playerCooldownSeconds != configuredCooldown) {
+            getLogger().warning("cooldowns.player-cooldown-seconds cannot be negative; using 0.");
+        }
+
         debug = getConfig().getBoolean("debug", false);
 
-        // Load all messages
+        // Load all messages and translate legacy ampersand color codes once.
         messages = new HashMap<>();
         if (getConfig().isConfigurationSection("messages")) {
             getConfig().getConfigurationSection("messages").getKeys(false).forEach(key ->
@@ -92,30 +155,32 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
     }
 
     private List<Material> parseMaterials(List<String> names, Material... fallback) {
-        List<Material> list = new ArrayList<>();
-        for (String name : names) {
-            Material mat = Material.matchMaterial(name.trim().toUpperCase(Locale.ROOT));
-            if (mat != null) list.add(mat);
-            else getLogger().warning("Invalid material in config: " + name);
-        }
-        if (list.isEmpty()) list.addAll(Arrays.asList(fallback));
-        return list;
+        return parseMaterials(names, Arrays.asList(fallback));
     }
 
     private List<Material> parseMaterials(List<String> names, List<Material> fallback) {
         List<Material> list = new ArrayList<>();
         for (String name : names) {
-            Material mat = Material.matchMaterial(name.trim().toUpperCase(Locale.ROOT));
-            if (mat != null) list.add(mat);
-            else getLogger().warning("Invalid material in config: " + name);
+            if (name == null || name.trim().isEmpty()) {
+                getLogger().warning("Ignoring an empty material name in config.");
+                continue;
+            }
+
+            Material material = Material.matchMaterial(name.trim().toUpperCase(Locale.ROOT));
+            if (material != null) {
+                list.add(material);
+            } else {
+                getLogger().warning("Invalid material in config: " + name);
+            }
         }
-        return list.isEmpty() ? fallback : list;
+        // Retain the existing behavior: an empty/invalid allow-list falls back to all materials.
+        return list.isEmpty() ? new ArrayList<>(fallback) : list;
     }
 
     // -------------------
     // Ritual interaction
     // -------------------
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onRightClick(PlayerInteractEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
         if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -131,6 +196,9 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
             return;
         }
 
+        // Prevent vanilla behaviour (placing the offered block, opening the beacon GUI) from consuming the item.
+        event.setCancelled(true);
+
         Location loc = event.getClickedBlock().getLocation();
 
         if (requireNight && !isNight(loc.getWorld())) {
@@ -141,9 +209,13 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
         long now = System.currentTimeMillis();
         Long available = playerCooldowns.get(player.getUniqueId());
         if (available != null && now < available) {
-            long secs = (available - now + 999) / 1000;
-            player.sendMessage(getMessage("player-cooldown").replace("{time}", String.valueOf(secs)));
+            long secondsRemaining = (available - now + 999L) / 1000L;
+            player.sendMessage(getMessage("player-cooldown")
+                    .replace("{time}", String.valueOf(secondsRemaining)));
             return;
+        }
+        if (available != null) {
+            playerCooldowns.remove(player.getUniqueId());
         }
 
         if (!isValidCircle(loc)) {
@@ -156,23 +228,42 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
             return;
         }
 
-        double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
+        double roll = ThreadLocalRandom.current().nextDouble(0.0, 100.0);
         World world = loc.getWorld();
-        Location strikeLoc = loc.clone().add(0.5, 1, 0.5);
+        Location strikeLocation = loc.clone().add(0.5, 1.0, 0.5);
 
-        if (debug) getLogger().info(player.getName() + " attempted ritual at " + loc + " (roll: " + roll + "%)");
+        if (debug) {
+            String debugMessage = getMessage("debug-roll")
+                    .replace("{player}", player.getName())
+                    .replace("{location}", world.getName() + " " + loc.getBlockX() + ", "
+                            + loc.getBlockY() + ", " + loc.getBlockZ())
+                    .replace("{roll}", String.format(Locale.ROOT, "%.2f", roll));
+            getLogger().info(ChatColor.stripColor(debugMessage));
+        }
 
-        world.strikeLightningEffect(strikeLoc);
+        world.strikeLightningEffect(strikeLocation);
 
-        if (roll <= successChance) {
-            world.dropItemNaturally(loc.clone().add(0, 1, 0), item.clone());
+        // A strict comparison makes 0% always fail and 100% always succeed.
+        if (roll < successChance) {
+            world.dropItemNaturally(loc.clone().add(0.0, 1.0, 0.0), item.clone());
             player.sendMessage(getMessage("success"));
         } else {
-            player.damage(failureDamage);
+            if (failureDamage > 0.0) {
+                player.damage(failureDamage);
+            }
             player.sendMessage(getMessage("failure"));
         }
 
-        playerCooldowns.put(player.getUniqueId(), now + playerCooldownSeconds * 1000);
+        long cooldownMillis = TimeUnit.SECONDS.toMillis(playerCooldownSeconds);
+        long cooldownExpiry = cooldownMillis > Long.MAX_VALUE - now
+                ? Long.MAX_VALUE
+                : now + cooldownMillis;
+        playerCooldowns.put(player.getUniqueId(), cooldownExpiry);
+    }
+
+    private void cleanupExpiredCooldowns() {
+        long now = System.currentTimeMillis();
+        playerCooldowns.entrySet().removeIf(entry -> entry.getValue() <= now);
     }
 
     // -------------------
@@ -182,13 +273,18 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
         World world = center.getWorld();
         if (world == null) return false;
 
-        int cx = center.getBlockX();
-        int cy = center.getBlockY();
-        int cz = center.getBlockZ();
+        int centerX = center.getBlockX();
+        int centerY = center.getBlockY();
+        int centerZ = center.getBlockZ();
 
-        for (int[] off : CIRCLE_OFFSETS) {
-            Material mat = world.getBlockAt(cx + off[0], cy, cz + off[2]).getType();
-            if (!surroundBlocks.contains(mat)) return false;
+        for (int[] offset : CIRCLE_OFFSETS) {
+            Material material = world.getBlockAt(
+                    centerX + offset[0],
+                    centerY,
+                    centerZ + offset[2]
+            ).getType();
+
+            if (!surroundBlocks.contains(material)) return false;
         }
         return true;
     }
@@ -196,17 +292,21 @@ public final class PumpkinRitualDupe extends JavaPlugin implements Listener {
     private boolean isNight(World world) {
         if (world == null) return false;
         long time = world.getTime();
-        return time >= 13000 && time <= 23000;
+        return time >= 13000L && time <= 23000L;
     }
 
     // -------------------
     // Helper: get messages from config
     // -------------------
     public String getMessage(String key) {
-        return messages.getOrDefault(key, key);
+        return messages == null ? key : messages.getOrDefault(key, key);
     }
 
-    private String color(String msg) {
-        return ChatColor.translateAlternateColorCodes('&', msg == null ? "" : msg);
+    private static double clamp(double value, double minimum, double maximum) {
+        return Math.max(minimum, Math.min(maximum, value));
+    }
+
+    private String color(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message == null ? "" : message);
     }
 }
